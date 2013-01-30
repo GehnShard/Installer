@@ -33,10 +33,10 @@ VIProductVersion    "12.0.0.0"
 !define MUI_ICON                        "Resources\Icon.ico"
 !define MUI_FINISHPAGE_RUN              "$INSTDIR\UruLauncher.exe"
 
-; For some reason, the below text fails to work.
-;!define MUI_HEADERIMAGE
-;!define MUI_HEADERIMAGE_BITMAP          "Resources\Header.bmp"
-;!define MUI_WELCOMEFINISHPAGE_BITMAP    "Resources\WelcomeFinish.bmp"
+; Custom Images :D
+!define MUI_HEADERIMAGE
+!define MUI_HEADERIMAGE_BITMAP          "Resources\Header.bmp"
+!define MUI_WELCOMEFINISHPAGE_BITMAP    "Resources\WelcomeFinish.bmp"
 
 ;;;;;;;;;;;;;
 ; Variables ;
