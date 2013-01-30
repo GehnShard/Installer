@@ -1,0 +1,7 @@
+# Binary Resources
+# These are dependent on build environment, shard, etc.
+# Best exclude them and let the dev provide them manually
+Files/*
+
+# NSIS Output
+gehn_shard.exe
