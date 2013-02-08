@@ -173,7 +173,7 @@ SectionEnd
 ; Give everyone permissions to write to the shard folder.
 ; This is needed because the patcher likes to touch itself.
 Section "SetPermissions"
-    ExecWait "cacls '$INSTDIR' /t /e /g Users:w"
+    ExecWait 'cacls "$INSTDIR" /t /e /g "Authenticated Users":c'
 SectionEnd
 
 Section "Uninstall"
