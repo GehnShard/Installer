@@ -146,9 +146,9 @@ Section "Files"
     File        "Files\wrap_oal.dll"
     File        "Files\vcredist_x86.exe"
     File        "Files\dxwebsetup.exe"
-    ExecWait    "Files\vcredist_x86.exe /q"
-    ExecWait    "Files\oalinst.exe /s"
-    ExecWait    "Files\dxwebsetup.exe /q"
+    ExecWait    "$INSTDIR\vcredist_x86.exe /q"
+    ExecWait    "$INSTDIR\oalinst.exe /s"
+    ExecWait    "$INSTDIR\dxwebsetup.exe /q"
 
     WriteRegStr HKCU "Software\Gehn Shard" "" $INSTDIR
     WriteUninstaller "$INSTDIR\Uninstall.exe"
