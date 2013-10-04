@@ -146,7 +146,7 @@ Section "Files"
     File        "Files\wrap_oal.dll"
     File        "Files\vcredist_x86.exe"
     File        "Files\dxwebsetup.exe"
-    ExecWait    "$INSTDIR\vcredist_x86.exe /q"
+    ExecWait    "$INSTDIR\vcredist_x86.exe /q /norestart"
     ExecWait    "$INSTDIR\oalinst.exe /s"
     ExecWait    "$INSTDIR\dxwebsetup.exe /q"
 
