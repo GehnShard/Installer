@@ -21,10 +21,10 @@ RequestExecutionLevel   admin
 Name                "Gehn Shard"
 VIAddVersionKey     "CompanyName"       "Guild of Writers"
 VIAddVersionKey     "FileDescription"   "Gehn Shard"
-VIAddVersionKey     "FileVersion"       "14"
+VIAddVersionKey     "FileVersion"       "17"
 VIAddVersionKey     "LegalCopyright"    "Guild of Writers"
 VIAddVersionKey     "ProductName"       "Gehn Shard"
-VIProductVersion    "14.0.0.0"
+VIProductVersion    "17.0.0.0"
 
 ;;;;;;;;;;;;;;;;;;;;;
 ; MUI Configuration ;
