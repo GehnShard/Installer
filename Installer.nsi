@@ -21,10 +21,10 @@ RequestExecutionLevel   admin
 Name                "Gehn Shard"
 VIAddVersionKey     "CompanyName"       "Guild of Writers"
 VIAddVersionKey     "FileDescription"   "Gehn Shard"
-VIAddVersionKey     "FileVersion"       "17"
+VIAddVersionKey     "FileVersion"       "18"
 VIAddVersionKey     "LegalCopyright"    "Guild of Writers"
 VIAddVersionKey     "ProductName"       "Gehn Shard"
-VIProductVersion    "17.0.0.0"
+VIProductVersion    "18.0.0.0"
 
 ;;;;;;;;;;;;;;;;;;;;;
 ; MUI Configuration ;
@@ -43,6 +43,7 @@ VIProductVersion    "17.0.0.0"
 ;;;;;;;;;;;;;
 Var InstallToUru
 Var InstDirUru
+Var LaunchRepair
 
 ;;;;;;;;;;;;;
 ; Functions ;
@@ -54,26 +55,6 @@ Function FindUruDir
     ReadRegStr  $InstDirUru HKLM "Software\MOUL" "Install_Dir"
     Goto done
     skip_this_step:
-        Abort
-    done:
-FunctionEnd
-
-; Verifies that the source folder is an Uru Live directory.
-; The check for the PhysX DLL is required to ensure it is a valid Uru Live
-; installation, and not just an Uru installation.
-Function VerifyUruDir
-    FindFirst   $0 $1 "$InstDirUru\UruExplorer.exe"
-    StrCmp      $1 "" bad_uru_dir
-    FindClose   $0
-    FindFirst   $0 $1 "$InstDirUru\NxExtensions.dll"
-    StrCmp      $1 "" bad_uru_dir
-    FindClose   $0
-    Goto        done
-    bad_uru_dir:
-        MessageBox MB_YESNO|MB_ICONEXCLAMATION \
-            "The folder you selected does not appear to be a valid Uru Live \
-            installation. Are you sure you want to use this directory?" \
-            IDYES done
         Abort
     done:
 FunctionEnd
@@ -107,21 +88,6 @@ FunctionEnd
 !insertmacro MUI_PAGE_LICENSE                   "Resources\GPLv3.txt"
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE           CheckIfDirIsUru
 !insertmacro MUI_PAGE_DIRECTORY
-!define MUI_PAGE_HEADER_TEXT                    "Choose Uru Live Location"
-!define MUI_PAGE_HEADER_SUBTEXT                 "Choose the folder in which \
-                                                Uru Live was installed."
-!define MUI_DIRECTORYPAGE_TEXT_TOP              "To install Gehn Shard, you \
-                                                must first have installed Myst \
-                                                Online: Uru Live (again). You \
-                                                now need to locate the folder \
-                                                in which you installed Uru \
-                                                Live (usually C:\Program \
-                                                Files\Uru Live)."
-!define MUI_DIRECTORYPAGE_TEXT_DESTINATION      "Uru Live Folder"
-!define MUI_DIRECTORYPAGE_VARIABLE              $InstDirUru
-!define MUI_PAGE_CUSTOMFUNCTION_PRE             FindUruDir
-!define MUI_PAGE_CUSTOMFUNCTION_LEAVE           VerifyUruDir
-!insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
@@ -140,24 +106,43 @@ FunctionEnd
 Section "Files"
     SetOutPath  $INSTDIR
     File        "Files\UruLauncher.exe"
+    File        "Files\repair.ini"
     File        "Files\server.ini"
-    File        "Files\oalinst.exe"
-    File        "Files\OpenAL32.dll"
-    File        "Files\wrap_oal.dll"
     File        "Files\vcredist_x86.exe"
-    File        "Files\dxwebsetup.exe"
     ExecWait    "$INSTDIR\vcredist_x86.exe /q /norestart"
-    ExecWait    "$INSTDIR\oalinst.exe /s"
-    ExecWait    "$INSTDIR\dxwebsetup.exe /q"
 
     WriteRegStr HKCU "Software\Gehn Shard" "" $INSTDIR
     WriteUninstaller "$INSTDIR\Uninstall.exe"
 
-    CreateShortCut  "$SMPROGRAMS\Gehn Shard.lnk" "$INSTDIR\UruLauncher.exe"
+    CreateDirectory "$SMPROGRAMS\Gehn Shard"
+    CreateShortCut  "$SMPROGRAMS\Gehn Shard\Gehn Shard.lnk" "$INSTDIR\UruLauncher.exe"
+    CreateShortCut  "$SMPROGRAMS\Gehn Shard\Gehn Shard - Repair.lnk" "$INSTDIR\UruLauncher.exe" \
+                    "/ServerIni=repair.ini /Repair"
+    CreateShortCut  "$SMPROGRAMS\Gehn Shard\Gehn User Profile.lnk" "$LOCALAPPDATA\Uru - Gehn Shard"
+    CreateShortCut  "$SMPROGRAMS\Gehn Shard\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+SectionEnd
+
+Section "FigureOutDataSource"
+    StrCmp          $InstallToUru "true" done
+    Call            FindUruDir
+
+    ; Check to see if we have a MOULa install. If we do, we'll want to
+    ; copy the files. If not, automatically launch a patch-only repair.
+    ; This will download just the files from Cyan's MOULa, then quit.
+    FindFirst       $0 $1 "$InstDirUru\UruLauncher.exe"
+    StrCmp          $1 "" bad_uru_dir
+    FindClose       $0
+    Goto            done
+
+    bad_uru_dir:
+    StrCpy          $LaunchRepair "true"
+
+    done:
 SectionEnd
 
 Section "dat"
     StrCmp          $InstallToUru "true" skip_this_step
+    StrCmp          $LaunchRepair "true" skip_this_step
     CreateDirectory "$INSTDIR\dat"
     CopyFiles       /Silent /FilesOnly "$InstDirUru\dat\*" "$INSTDIR\dat"
     skip_this_step:
@@ -165,6 +150,7 @@ SectionEnd
 
 Section "sfx"
     StrCmp          $InstallToUru "true" skip_this_step
+    StrCmp          $LaunchRepair "true" skip_this_step
     CreateDirectory "$INSTDIR\sfx"
     CopyFiles       /Silent /FilesOnly "$InstDirUru\sfx\*.ogg" "$INSTDIR\sfx"
     skip_this_step:
@@ -176,8 +162,19 @@ Section "SetPermissions"
     ExecWait 'cacls "$INSTDIR" /t /e /g "Authenticated Users":c'
 SectionEnd
 
+; This fires up the patcher if there is no MOULa install.
+Section "Repair"
+    StrCmp           $LaunchRepair "true" repair
+    Goto             done
+
+    repair:
+    ExecWait         "$INSTDIR\UruLauncher.exe /ServerIni=repair.ini /Repair /PatchOnly"
+
+    done:
+SectionEnd
+
 Section "Uninstall"
-    Delete "$SMPROGRAMS\Gehn Shard.lnk"
+    RMDir /r "$SMPROGRAMS\Gehn Shard"
     Delete "$INSTDIR\Uninstall.exe"
     RMDir /r "$INSTDIR"
     DeleteRegKey /ifempty HKCU "Software\Gehn Shard"
