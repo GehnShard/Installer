@@ -5,6 +5,7 @@
 ; Includes ;
 ;;;;;;;;;;;;
 !include MUI2.nsh
+!include WinVer.nsh
 
 ;;;;;;;;;;;;;;;;;;;;;;
 ; Installer Settings ;
@@ -21,10 +22,10 @@ RequestExecutionLevel   admin
 Name                "Gehn Shard"
 VIAddVersionKey     "CompanyName"       "Guild of Writers"
 VIAddVersionKey     "FileDescription"   "Gehn Shard"
-VIAddVersionKey     "FileVersion"       "18"
+VIAddVersionKey     "FileVersion"       "20"
 VIAddVersionKey     "LegalCopyright"    "Guild of Writers"
 VIAddVersionKey     "ProductName"       "Gehn Shard"
-VIProductVersion    "18.0.0.0"
+VIProductVersion    "20.0.0.0"
 
 ;;;;;;;;;;;;;;;;;;;;;
 ; MUI Configuration ;
@@ -48,6 +49,21 @@ Var LaunchRepair
 ;;;;;;;;;;;;;
 ; Functions ;
 ;;;;;;;;;;;;;
+
+; Inform the user if their OS is unsupported.
+Function .onInit
+  ${IfNot} ${AtLeastWinVista}
+    MessageBox MB_YESNO|MB_ICONEXCLAMATION \
+       "Windows Vista or above is required to run Gehn Shard.$\r$\n\
+        You may install the client but will be unable to run it on this OS.$\r$\n$\r$\n\
+        Do you still wish to install?" \
+        /SD IDYES IDNO do_quit
+  ${EndIf}
+  Goto done
+  do_quit:
+    Quit
+  done:
+FunctionEnd
 
 ; Tries to find the Uru Live directory in the registry.
 Function FindUruDir
