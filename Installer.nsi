@@ -44,7 +44,6 @@ VIProductVersion    "20.0.0.0"
 ;;;;;;;;;;;;;
 Var InstallToUru
 Var InstDirUru
-Var LaunchRepair
 
 ;;;;;;;;;;;;;
 ; Functions ;
@@ -89,6 +88,8 @@ FunctionEnd
 !insertmacro MUI_PAGE_LICENSE                   "Resources\GPLv3.txt"
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE           CheckIfDirIsUru
 !insertmacro MUI_PAGE_DIRECTORY
+!define MUI_COMPONENTSPAGE_NODESC
+!insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
@@ -101,16 +102,35 @@ FunctionEnd
 ;;;;;;;;;;;;;
 !insertmacro MUI_LANGUAGE "English"
 
+;;;;;;;;;;;;;;;;;
+; Install Types ;
+;;;;;;;;;;;;;;;;;
+InstType           "Typical"
+InstType           "Minimal"
+InstType           "Complete"
+InstType           /NOCUSTOM
+
+
 ;;;;;;;;;;;;
 ; Sections ;
 ;;;;;;;;;;;;
-Section "Files"
+Section "-SetPath"
     SetOutPath  $INSTDIR
+SectionEnd
+
+Section "Visual C++ Runtime"
+    SectionIn   1 2 3 RO
+
+    File        "Files\vcredist_x86.exe"
+    ExecWait    "$INSTDIR\vcredist_x86.exe /q /norestart"
+SectionEnd
+
+Section "URU Client"
+    SectionIn   1 2 3 RO
+
     File        "Files\UruLauncher.exe"
     File        "Files\repair.ini"
     File        "Files\server.ini"
-    File        "Files\vcredist_x86.exe"
-    ExecWait    "$INSTDIR\vcredist_x86.exe /q /norestart"
 
     WriteRegStr HKCU "Software\Gehn Shard" "" $INSTDIR
     WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -123,55 +143,43 @@ Section "Files"
     CreateShortCut  "$SMPROGRAMS\Gehn Shard\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
 SectionEnd
 
-Section "FigureOutDataSource"
-    StrCmp          $InstallToUru "true" done
-    Call            FindUruDir
+Section "URU Assets"
+    SectionIn   1 3 RO
+
+    StrCmp      $InstallToUru "true" done
+    Call        FindUruDir
 
     ; Check to see if we have a MOULa install. If we do, we'll want to
     ; copy the files. If not, automatically launch a patch-only repair.
     ; This will download just the files from Cyan's MOULa, then quit.
-    FindFirst       $0 $1 "$InstDirUru\UruLauncher.exe"
-    StrCmp          $1 "" bad_uru_dir
-    FindClose       $0
-    Goto            done
+    FindFirst   $0 $1 "$InstDirUru\UruLauncher.exe"
+    StrCmp      $1 "" done
+    FindClose   $0
+    Goto        done
 
-    bad_uru_dir:
-    StrCpy          $LaunchRepair "true"
+    copy_assets:
+    CreateDirectory "$INSTDIR\dat"
+    CreateDirectory "$INSTDIR\sfx"
+    CopyFiles       /Silent /FilesOnly "$InstDirUru\dat\*" "$INSTDIR\dat"
+    CopyFiles       /Silent /FilesOnly "$InstDirUru\sfx\*.ogg" "$INSTDIR\sfx"
 
     done:
-SectionEnd
-
-Section "dat"
-    StrCmp          $InstallToUru "true" skip_this_step
-    StrCmp          $LaunchRepair "true" skip_this_step
-    CreateDirectory "$INSTDIR\dat"
-    CopyFiles       /Silent /FilesOnly "$InstDirUru\dat\*" "$INSTDIR\dat"
-    skip_this_step:
-SectionEnd
-
-Section "sfx"
-    StrCmp          $InstallToUru "true" skip_this_step
-    StrCmp          $LaunchRepair "true" skip_this_step
-    CreateDirectory "$INSTDIR\sfx"
-    CopyFiles       /Silent /FilesOnly "$InstDirUru\sfx\*.ogg" "$INSTDIR\sfx"
-    skip_this_step:
 SectionEnd
 
 ; Give everyone permissions to write to the shard folder.
 ; This is needed because the patcher likes to touch itself.
-Section "SetPermissions"
-    ExecWait 'cacls "$INSTDIR" /t /e /g "Authenticated Users":c'
+Section "-SetPermissions"
+    SectionIn   1 2 3 RO
+    ExecWait    'cacls "$INSTDIR" /t /e /g "Authenticated Users":c'
 SectionEnd
 
-; This fires up the patcher if there is no MOULa install.
-Section "Repair"
-    StrCmp           $LaunchRepair "true" repair
-    Goto             done
+; This fires up the patcher if we are doing a complete install
+Section "Update URU"
+    SectionIn   3 RO
 
-    repair:
-    ExecWait         "$INSTDIR\UruLauncher.exe /ServerIni=repair.ini /Repair /PatchOnly"
-
-    done:
+    ; We are not using the "/Repair" argument because it will not download the client root.
+    ; That was desirable when we were fetching from MOULa, but now we fetch from Gehn itself :)
+    ExecWait    "$INSTDIR\UruLauncher.exe /ServerIni=repair.ini /Image /NoSelfPatch /PatchOnly"
 SectionEnd
 
 Section "Uninstall"
