@@ -101,7 +101,6 @@ FunctionEnd
 ; Pages ;
 ;;;;;;;;;
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE                   "Resources\GPLv3.txt"
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE           CheckIfDirIsUru
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
